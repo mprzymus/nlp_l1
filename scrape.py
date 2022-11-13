@@ -19,7 +19,7 @@ DONE_FILE = OUTPUT_DIR / "done.json"
 
 MIN_LEN = 40
 MAX_RESULTS = 1_000
-CONTENT_LINK_REGEX = re.compile(r"https://t.co/[a-zA-Z0-9]+")
+CONTENT_LINK_REGEX = re.compile(r"https?://t.co/[a-zA-Z0-9]+")
 USER_REGEX = re.compile(r"(?<=^|(?<=[^a-zA-Z0-9-\.]))@([A-Za-z0-9_]+)")
 
 
