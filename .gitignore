@@ -1,8 +1,9 @@
 clean
 corpus.txt
+full.txt
 .mypy_cache
 nkjp
-nkjp_corpus.txt
+nkjp.txt
 oscar.txt
 __pycache__
 scraped

@@ -4,7 +4,7 @@ from pathlib import Path
 from tqdm import tqdm
 
 CORPUS_DIR = Path("nkjp")
-OUTPUT_FILE = Path("nkjp_corpus.txt")
+OUTPUT_FILE = Path("nkjp.txt")
 
 
 def extract_text(f: Path) -> None:
