@@ -1,6 +1,6 @@
 import pandas as pd
 
-START = "2021-05-01"
+START = "2019-09-01"
 END = "2022-11-12"
 
 

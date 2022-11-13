@@ -6,11 +6,11 @@ from langdetect import LangDetectException, detect
 from tqdm import tqdm
 
 CORPUS_DIR = Path("scraped")
-OUTPUT_DIR = Path("clean")
-OUTPUT_DIR.mkdir(exist_ok=True)
+OUTPUT_FILE = Path("corpus.txt")
 
 
 def clean_text(text: str) -> t.Optional[str]:
+    text = text.replace("\n\n", "\n")
     text = text.strip()
 
     try:
@@ -27,14 +27,14 @@ def clean_text(text: str) -> t.Optional[str]:
 def preprocess_file(f: Path) -> None:
     df = pd.read_json(f, lines=True)
 
-    for _, data in df.iterrows():
-        content = data["content"]
+    with OUTPUT_FILE.open("a", encoding="utf-8") as output:
+        for _, data in df.iterrows():
+            content = data["content"]
+            cleaned = clean_text(content)
 
-        cleaned = clean_text(content)
-
-        if cleaned:
-            output_file = OUTPUT_DIR / f"{data['id']}.txt"
-            output_file.write_text(cleaned, encoding="utf-8")
+            if cleaned:
+                output.write(cleaned)
+                output.write("\n\n")
 
 
 def main() -> None:
