@@ -1,11 +1,14 @@
 clean
 corpus.txt
+corpus_analysis.csv
 full.txt
+full_analysis.csv
 imgs/
 .mypy_cache
 nkjp
 nkjp.txt
 oscar.txt
 problem.txt
+problem_analysis.csv
 __pycache__
 scraped
