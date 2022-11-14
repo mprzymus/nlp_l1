@@ -8,3 +8,4 @@ wordcloud
 spacy
 snscrape
 tqdm
+plotly
