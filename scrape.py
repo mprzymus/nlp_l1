@@ -7,7 +7,7 @@ import pandas as pd
 import snscrape.modules.twitter as twt
 from tqdm import tqdm
 
-from config import SCRAPED_DIR, SCRAPED_DONE, date_range
+from config import CONTENT_LINK_REGEX, SCRAPED_DIR, SCRAPED_DONE, date_range
 
 TWEETS_DIR = SCRAPED_DIR / dt.datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
 TWEETS_DIR.mkdir(exist_ok=True, parents=True)
@@ -73,7 +73,7 @@ class Scraper:
         scraper = twt.TwitterSearchScraper(str(query))
         tweets: list[twt.Tweet] = []
         for tweet in scraper.get_items():
-            if len(tweet.content) > 40:
+            if self.length_of(tweet) > 40:
                 tweets.append(tweet)
 
                 if len(tweets) >= MAX_RESULTS:
@@ -95,7 +95,7 @@ class Scraper:
         if not tweets:
             return
 
-        df = pd.DataFrame([self.tweet_to_dict(tweet) for tweet in tweets])
+        df = pd.DataFrame([self.tweet_to_dict(tweet) for tweet in tweets], dtype=object)
         df.drop_duplicates(subset="id")
         df["replies_scraped"] = replies
         as_json = df.to_json(orient="records", lines=True)
@@ -110,16 +110,45 @@ class Scraper:
         SCRAPED_DONE.write_text(json.dumps(done, indent=2))
 
     @staticmethod
+    def length_of(tweet: twt.Tweet) -> int:
+        return len(CONTENT_LINK_REGEX.sub("", tweet.content).replace("  ", " ").strip())
+
+    @staticmethod
     def tweet_to_dict(tweet: twt.Tweet) -> dict:
         return dict(
             id=tweet.id,
             content=tweet.content,
-            username=tweet.user.username,
             timestamp=tweet.date,
+            user_name=tweet.user.username,
+            user_display_name=tweet.user.displayname,
+            user_verified=tweet.user.verified,
+            user_followers=tweet.user.followersCount,
+            user_tweets=tweet.user.statusesCount,
+            user_likes=tweet.user.favouritesCount,
+            user_created_at=tweet.user.created,
             replies=tweet.replyCount,
-            quoted=tweet.quotedTweet.id if tweet.quotedTweet else 0,
-            reply_to=tweet.inReplyToTweetId if tweet.inReplyToTweetId else 0,
-            hashtags=tweet.hashtags if tweet.hashtags else [],
+            quotes=tweet.quoteCount,
+            retweets=tweet.retweetCount,
+            likes=tweet.likeCount,
+            quoted=tweet.quotedTweet.id if tweet.quotedTweet else None,
+            hashtags=tweet.hashtags if tweet.hashtags else None,
+            mentioned=[u.username for u in tweet.mentionedUsers]
+            if tweet.mentionedUsers
+            else None,
+            links=[l for l in tweet.outlinks] if tweet.outlinks else None,
+            tco_links=[l for l in tweet.tcooutlinks] if tweet.tcooutlinks else None,
+            media=[o.__class__.__name__ for o in tweet.media] if tweet.media else None,
+            source=tweet.sourceLabel,
+            reply_to_tweet_id=tweet.inReplyToTweetId
+            if tweet.inReplyToTweetId
+            else None,
+            reply_to_user_name=tweet.inReplyToUser.username
+            if tweet.inReplyToTweetId
+            else None,
+            reply_to_user_display_name=tweet.inReplyToUser.displayname
+            if tweet.inReplyToTweetId
+            else None,
+            conversation_id=tweet.conversationId if tweet.conversationId else None,
         )
 
 
