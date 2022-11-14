@@ -24,29 +24,34 @@ def read_corpus(f: Path) -> list[str]:
 
 
 def process(f: Path) -> None:
-    nlp = spacy.load("pl_core_news_sm", disable=["parser", "ner", "tok2vec"])
+    nlp = spacy.load("pl_core_news_sm", disable=["parser", "ner"])
     restricted_words = {"@user", "@anonymized_account", " ", "rt"}
 
-    analyzed: list[tuple[str, str]] = []
     corpus = read_corpus(f)
 
-    for text in tqdm(corpus):
-        doc = nlp(text)
+    output_file = Path(f"{f.stem}_analysis.csv")
 
-        analyzed.extend(
-            (token.lemma_.lower(), token.pos_)
-            for token in doc
-            if not (
-                token.is_stop
-                or token.is_punct
-                or token.like_num
-                or token.is_digit
-                or token.lemma_.lower() in restricted_words
+    with output_file.open(mode="w", encoding="utf-8") as output:
+        output.write("Text,POS")
+
+        for text in tqdm(corpus):
+            output.write("\n")
+
+            doc = nlp(text)
+
+            output.write(
+                "\n".join(
+                    f"{token.lemma_.lower()},{token.pos_}"
+                    for token in doc
+                    if not (
+                        token.is_stop
+                        or token.is_punct
+                        or token.like_num
+                        or token.is_digit
+                        or token.lemma_.lower() in restricted_words
+                    )
+                )
             )
-        )
-
-    output = pd.DataFrame(analyzed, columns=["Text", "POS"])
-    output.to_csv(f"{f.stem}_analysis.csv", index=False)
 
 
 def main():
