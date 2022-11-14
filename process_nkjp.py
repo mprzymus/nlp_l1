@@ -3,14 +3,13 @@ from pathlib import Path
 
 from tqdm import tqdm
 
-CORPUS_DIR = Path("nkjp")
-OUTPUT_FILE = Path("nkjp.txt")
+from config import NKJP, NKJP_DIR
 
 
 def extract_text(f: Path) -> None:
     root = ET.fromstring(f.read_text(encoding="utf-8"))
 
-    with OUTPUT_FILE.open("a", encoding="utf-8") as output:
+    with NKJP.open("a", encoding="utf-8") as output:
         for div in root.iter("{http://www.tei-c.org/ns/1.0}div"):
             for line in div:
                 if not line.text:
@@ -23,7 +22,7 @@ def extract_text(f: Path) -> None:
 
 
 def main() -> None:
-    files = list(CORPUS_DIR.rglob("*text.xml"))
+    files = list(NKJP_DIR.rglob("*text.xml"))
     for f in tqdm(files):
         extract_text(f)
 

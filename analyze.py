@@ -3,9 +3,7 @@ from pathlib import Path
 import spacy
 from tqdm import tqdm
 
-FULL_FILE = Path("full.txt")
-CORPUS_FILE = Path("corpus.txt")
-PROBLEM_FILE = Path("problem.txt")
+from config import CORPUS, FULL, PROBLEM
 
 
 def read_corpus(f: Path) -> list[str]:
@@ -54,9 +52,9 @@ def process(f: Path) -> None:
 
 
 def main():
-    process(FULL_FILE)
-    process(CORPUS_FILE)
-    process(PROBLEM_FILE)
+    process(FULL)
+    process(CORPUS)
+    process(PROBLEM)
 
 
 if __name__ == "__main__":

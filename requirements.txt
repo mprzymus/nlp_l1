@@ -1,11 +1,10 @@
 datasets
 langdetect
 matplotlib
-nltk
 pandas
+plotly
 pyarrow
 wordcloud
 spacy
 snscrape
 tqdm
-plotly

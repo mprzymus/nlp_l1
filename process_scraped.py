@@ -5,13 +5,13 @@ import pandas as pd
 from langdetect import LangDetectException, detect
 from tqdm import tqdm
 
-CORPUS_DIR = Path("scraped")
-OUTPUT_FILE = Path("corpus.txt")
+from config import CONTENT_LINK_REGEX, CORPUS, SCRAPED_DIR, USER_REGEX
 
 
 def clean_text(text: str) -> t.Optional[str]:
-    text = text.replace("\n\n", "\n")
-    text = text.strip()
+    text = CONTENT_LINK_REGEX.sub("", text)
+    text = USER_REGEX.sub("@user", text)
+    text = text.replace("  ", " ").replace("\n\n", "\n").strip()
 
     try:
         lang = detect(text)
@@ -27,7 +27,7 @@ def clean_text(text: str) -> t.Optional[str]:
 def preprocess_file(f: Path) -> None:
     df = pd.read_json(f, lines=True)
 
-    with OUTPUT_FILE.open("a", encoding="utf-8") as output:
+    with CORPUS.open("a", encoding="utf-8") as output:
         for _, data in df.iterrows():
             content = data["content"]
             cleaned = clean_text(content)
@@ -38,7 +38,7 @@ def preprocess_file(f: Path) -> None:
 
 
 def main() -> None:
-    files = list(CORPUS_DIR.rglob("*.jsonl"))
+    files = list(SCRAPED_DIR.rglob("*.jsonl"))
     for f in tqdm(files):
         preprocess_file(f)
 

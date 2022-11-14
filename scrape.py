@@ -1,37 +1,24 @@
 import datetime as dt
 import json
-import re
 import typing as t
 from dataclasses import dataclass, field, replace
-from pathlib import Path
 
 import pandas as pd
 import snscrape.modules.twitter as twt
 from tqdm import tqdm
 
-from config import date_range
+from config import SCRAPED_DIR, SCRAPED_DONE, date_range
 
-OUTPUT_DIR = Path("scraped")
-TWEETS_DIR = OUTPUT_DIR / dt.datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
+TWEETS_DIR = SCRAPED_DIR / dt.datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
 TWEETS_DIR.mkdir(exist_ok=True, parents=True)
-
-DONE_FILE = OUTPUT_DIR / "done.json"
 
 MIN_LEN = 40
 MAX_RESULTS = 1_000
-CONTENT_LINK_REGEX = re.compile(r"https?://t.co/[a-zA-Z0-9]+")
-USER_REGEX = re.compile(r"(?<=^|(?<=[^a-zA-Z0-9-\.]))@([A-Za-z0-9_]+)")
 
 
 def read_done() -> set[str]:
-    done = json.loads(DONE_FILE.read_text()) if DONE_FILE.is_file() else []
+    done = json.loads(SCRAPED_DONE.read_text()) if SCRAPED_DONE.is_file() else []
     return set(done)
-
-
-def clean(tweet: twt.Tweet) -> str:
-    content = CONTENT_LINK_REGEX.sub("", tweet.content)
-    content = USER_REGEX.sub("@user", content)
-    return content.replace("  ", " ").strip()
 
 
 @dataclass
@@ -86,8 +73,6 @@ class Scraper:
         scraper = twt.TwitterSearchScraper(str(query))
         tweets: list[twt.Tweet] = []
         for tweet in scraper.get_items():
-            tweet.content = clean(tweet)
-
             if len(tweet.content) > 40:
                 tweets.append(tweet)
 
@@ -122,7 +107,7 @@ class Scraper:
         self.done.add(of_date.isoformat())
         done = list(self.done)
         done.sort()
-        DONE_FILE.write_text(json.dumps(done, indent=2))
+        SCRAPED_DONE.write_text(json.dumps(done, indent=2))
 
     @staticmethod
     def tweet_to_dict(tweet: twt.Tweet) -> dict:

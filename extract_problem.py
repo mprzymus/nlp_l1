@@ -1,15 +1,11 @@
-import re
-from pathlib import Path
-
 from datasets import load_dataset
 from pyarrow.lib import StringScalar
 
-OUTPUT_FILE = Path("problem.txt")
-CONTENT_LINK_REGEX = re.compile(r"https?://t.co/[a-zA-Z0-9]+")
+from config import CONTENT_LINK_REGEX, PROBLEM
 
 
 def extract(lines: list[StringScalar]) -> None:
-    with OUTPUT_FILE.open("a", encoding="utf-8") as f:
+    with PROBLEM.open("a", encoding="utf-8") as f:
         for line in lines:
             line = (
                 line.as_py()
