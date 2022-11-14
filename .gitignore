@@ -1,6 +1,7 @@
 clean
 corpus.txt
 full.txt
+imgs/
 .mypy_cache
 nkjp
 nkjp.txt

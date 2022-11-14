@@ -1,3 +1,10 @@
+datasets
+langdetect
+matplotlib
+nltk
 pandas
+pyarrow
+wordcloud
+spacy
 snscrape
 tqdm
