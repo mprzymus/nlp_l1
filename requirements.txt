@@ -1,11 +1,12 @@
 datasets
+emoji
 langdetect
 matplotlib
 pandas
 plotly
 pyarrow
-wordcloud
-spacy
 snscrape
+textstat
 tqdm
-emoji
+ufal.morphodita
+wordcloud
