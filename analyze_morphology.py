@@ -1,9 +1,23 @@
+from argparse import ArgumentParser, Namespace
+from itertools import count
+from multiprocessing import Manager, Pool, Process, Queue
 from pathlib import Path
+from queue import Empty
 
-import spacy
 from tqdm import tqdm
+from ufal.morphodita import Forms, TaggedLemmas, Tagger, TokenRanges
 
-from config import CORPUS, FULL, PROBLEM
+from config import (
+    CORPUS,
+    CORPUS_ANALYSIS,
+    FULL,
+    FULL_ANALYSIS,
+    MORPHODITA_TAGGER,
+    PROBLEM,
+    PROBLEM_ANALYSIS,
+    STOPWORDS,
+    ensure_morphodita_tagger,
+)
 
 
 def read_corpus(f: Path) -> list[str]:
@@ -20,41 +34,87 @@ def read_corpus(f: Path) -> list[str]:
     return data
 
 
-def process(f: Path) -> None:
-    nlp = spacy.load("pl_core_news_sm", disable=["parser", "ner"])
-    restricted_words = {"@user", "@anonymized_account", " ", "rt"}
+def process(read_queue: Queue, write_queue: Queue) -> None:
+    stopwords = STOPWORDS.read_text(encoding="utf-8").split()
+    restricted_words = {"@user", "@anonymized_account", " ", "rt", *stopwords}
+    restricted_pos = {"C", "Z"}
 
-    corpus = read_corpus(f)
+    tagger = Tagger.load(str(MORPHODITA_TAGGER))
+    tokenizer = tagger.newTokenizer()
+    forms = Forms()
+    lemmas = TaggedLemmas()
+    tokens = TokenRanges()
 
-    output_file = Path(f"{f.stem}_analysis.csv")
+    while not read_queue.empty():
+        try:
+            text = read_queue.get(block=False, timeout=0.1)
+        except Empty:
+            continue
 
-    with output_file.open(mode="w", encoding="utf-8") as output:
-        output.write("Text,POS")
+        tokenizer.setText(text.strip())
+        while tokenizer.nextSentence(forms, tokens):
+            tagger.tag(forms, lemmas)
 
-        for text in tqdm(corpus):
-            output.write("\n")
+            for lemma in lemmas:
+                normalized_lemma = lemma.lemma.lower()
+                pos = lemma.tag[0]
 
-            doc = nlp(text)
+                if not (
+                    normalized_lemma.isnumeric()
+                    or pos in restricted_pos
+                    or normalized_lemma in restricted_words
+                ):
+                    write_queue.put(f"{normalized_lemma},{pos}\n")
 
-            output.write(
-                "\n".join(
-                    f"{token.lemma_.lower()},{token.pos_}"
-                    for token in doc
-                    if not (
-                        token.is_stop
-                        or token.is_punct
-                        or token.like_num
-                        or token.is_digit
-                        or token.lemma_.lower() in restricted_words
-                    )
-                )
-            )
+
+def write_output(from_: Queue, to: Path) -> None:
+    with to.open(mode="w", encoding="utf-8") as output:
+        output.write("Text,POS\n")
+
+        for _ in tqdm(count()):
+            data = from_.get()
+
+            if data is None:
+                break
+
+            output.write(data)
+
+
+def process_multiprocessing(f: Path, output_file: Path, processes: int) -> None:
+    with Manager() as manager:
+        read_queue = manager.Queue()
+        write_queue = manager.Queue(maxsize=500_000)
+
+        for text in read_corpus(f):
+            read_queue.put(text)
+
+        write_process = Process(target=write_output, args=(write_queue, output_file))
+        write_process.start()
+
+        with Pool(processes) as pool:
+            for _ in range(processes):
+                pool.apply_async(process, (read_queue, write_queue))
+
+            pool.close()
+            pool.join()
+
+        write_queue.put(None)
+        write_process.join()
+
+
+def parse_args() -> Namespace:
+    parser = ArgumentParser()
+    parser.add_argument("-p", "--processes", type=int, default=20)
+    return parser.parse_args()
 
 
 def main():
-    process(FULL)
-    process(CORPUS)
-    process(PROBLEM)
+    args = parse_args()
+    ensure_morphodita_tagger()
+
+    process_multiprocessing(FULL, FULL_ANALYSIS, args.processes)
+    process_multiprocessing(CORPUS, CORPUS_ANALYSIS, args.processes)
+    process_multiprocessing(PROBLEM, PROBLEM_ANALYSIS, args.processes)
 
 
 if __name__ == "__main__":
